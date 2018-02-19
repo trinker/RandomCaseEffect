@@ -1,0 +1,46 @@
+---
+title: "Random Case Effect on Reading"
+author: Tyler Rinker
+output:
+  md_document  
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+## rmarkdown::render("README.Rmd", "all")
+```
+
+This repo is a demonstration of the random mixed case effect on the ability to read.   [Mayall, Humphreys & Olson (1997)](Mayall1997.pdf) document this effect.
+
+> Mayall, K., Humphreys, G. W., & Olson, A. (1997). Disruption to word or letter processing?: The origins of case-mixing effects. Journal of Experimental Psychology: Learning, Memory, and Cognition, 23(5), 1275-1286. 10.1037/0278-7393.23.5.1275 (on UBlearns)
+
+
+The authors argue that mixing case inappropriately has a negative impact on the ability for readers to decode text.  I wanted to test this effect on myself.  I needed a sentence and decided to make a minimal R function to randomly alter case:
+
+```{r}
+random_upper <- function(x, prop = .5, ...){
+
+    stopifnot(prop > 0 & prop <= 1)
+
+    y <- strsplit(x, '')
+
+    unlist(lapply(y, function(a){
+        locs <- grepl('[a-z]', a)   
+        ilocs <- which(locs)  
+        to_upper <- sample(ilocs, ceiling(prop * length(ilocs)))  
+        a[to_upper] <- toupper(a[to_upper])
+        paste(a, collapse = '')
+    }))
+}
+
+x <- "Many English words are formed by taking basic words and adding combinations of prefixes and suffixes to them."
+```
+
+
+```{r}
+random_upper(x, .1)
+random_upper(x, .3)
+random_upper(x, .5)
+```
+
+Indeed, I informally recognize that mixing case made decoding harder (likely removing automaticity in sight word recognition).
