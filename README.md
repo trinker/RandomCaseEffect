@@ -13,7 +13,7 @@ this effect.
 > Mayall, K., Humphreys, G. W., & Olson, A. (1997). Disruption to word
 > or letter processing?: The origins of case-mixing effects. Journal of
 > Experimental Psychology: Learning, Memory, and Cognition, 23(5),
-> 1275-1286. 10.1037/0278-7393.23.5.1275 (on UBlearns)
+> 1275-1286. 10.1037/0278-7393.23.5.1275
 
 The authors argue that mixing case inappropriately has a negative impact
 on the ability for readers to decode text. I wanted to test this effect
