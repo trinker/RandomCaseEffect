@@ -24,6 +24,23 @@ This repo is a demonstration of the random mixed case effect and other reading p
 The authors argue that mixing case inappropriately has a negative impact on the ability for readers to decode text.  I wanted to test this effect on myself.  I needed a sentence and decided to make a minimal R function to randomly alter case:
 
 ```{r}
+#' Randomly Change the Case of Letters Within Words
+#' 
+#' Following Mayall, Humphreys, & Olson (1997), this function randomly 
+#' converts a proportion of lower case letters to upper case.
+#' 
+#' @param x A vector of text strings to upper case.
+#' @param prop A proportion of graphemes to change the case of.
+#' @param wrap An integer value of how wide to wrap the strings.  Using the default 
+#' \code{NULL} disables this feature.
+#' @param \ldots ignored.
+#' @return Prints wrapped lines with internal graphemes randomly converted to 
+#' upper case.
+#' @references 
+#' Mayall, K., Humphreys, G. W., & Olson, A. (1997). Disruption to word or letter 
+#' processing?: The origins of case-mixing effects. Journal of Experimental Psychology: 
+#' Learning, Memory, and Cognition, 23(5), 1275-1286. 10.1037/0278-7393.23.5.1275
+#' @export
 random_upper <- function(x, prop = .5, wrap = NULL, ...){
 
     stopifnot(prop > 0 & prop <= 1)
@@ -85,10 +102,41 @@ Obviously, there is an element of truth to this but indeed there is a cost to sc
 
 > Rayner, K., White, S. J., Johnson, R. L., & Liversedge, S. P. (2006). Raeding wrods with jubmled lettres: There is a cost. Psychological Science, 17(3), 192-193. 10.1111/j.1467-9280.2006.01684.x 
 
-The code below produces random resamples of internal letters.  The `window` argument controls the window function (what letters are kept together), while the `sample.grams` argument is a logical command that, if true, reorders the gram sequences that have been sampled.  For example, let's say I had the sequence `123456`.  Sampling grams of length 3 may produce `231564`.  Setting ` sample.grams = TRUE` may further produce `564231`.
+The code below produces random resamples of internal letters.  The `gram.length` argument controls the ngram window function (what letters are kept together), while the `sample.grams` argument is a logical command that, if true, reorders the gram sequences that have been sampled.  For example, let's say I had the sequence `123456`.  Sampling grams of length 3 may produce `231564`.  Setting ` sample.grams = TRUE` may further produce `564231`.
 
 
 ```{r}
+#' Transpose Internal Letters Within Words
+#' 
+#' Following a famous Internet meme and Rayner, White, Johnson, & Liversedge 
+#' (2006), this function randomly scrambles the internal (not the first or last
+#' letter of > 3 character words) letters.
+#' 
+#' @details Internet meme:
+#' 
+#' It deosn't mttaer in waht oredr the ltteers in a wrod are, the olny iprmoetnt 
+#' tihng is taht the frist and lsat ltteer be at the rghit pclae. The rset can be 
+#' a toatl mses and you can sitll raed it wouthit porbelm. Tihs is bcuseae the 
+#' huamn mnid deos not raed ervey lteter by istlef, but the wrod as a wlohe.
+#'
+#' @param x A vector of text strings to scramble.
+#' @param gram.length The length of gram groups to scramble.  Setting this lower
+#' will keep expected graphemes close together.  Setting it to a high value (e.g.,
+#' 100) will allow the positions of graphemes to deviate farther from the expected
+#' clustering.
+#' @param sample.grams logical.  If \code{TRUE} then the ngram groups don't retain
+#' their original location.  For example, let's say we had the sequence \code{123456}. 
+#' Sampling grams of length 3 (\code{gram.length} may produce \code{231564}. Setting 
+#' \code{sample.grams = TRUE} may further produce \code{564231}.
+#' @param wrap An integer value of how wide to wrap the strings.  Using the default 
+#' \code{NULL} disables this feature.
+#' @param \ldots ignored.
+#' @return Prints wrapped lines with internal graphemes scrambled.
+#' @references 
+#' Rayner, K., White, S. J., Johnson, R. L., & Liversedge, S. P. (2006). Raeding 
+#' wrods with jubmled lettres: There is a cost. Psychological Science, 17(3), 
+#' 192-193. 10.1111/j.1467-9280.2006.01684.x
+#' @export
 random_scramble <- function(x, gram.length = 2, sample.grams = TRUE, wrap = NULL, ...){
 
     if (!is.integer(gram.length)) gram.length <- as.integer(gram.length)
