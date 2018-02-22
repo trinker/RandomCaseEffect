@@ -20,34 +20,61 @@ on the ability for readers to decode text. I wanted to test this effect
 on myself. I needed a sentence and decided to make a minimal R function
 to randomly alter case:
 
-    random_upper <- function(x, prop = .5, ...){
+    random_upper <- function(x, prop = .5, wrap = NULL, ...){
 
         stopifnot(prop > 0 & prop <= 1)
 
-        y <- strsplit(x, '')
+        ## splits each string to a vector of characters
+        char_vects <- strsplit(x, '')
 
-        unlist(lapply(y, function(a){
-            locs <- grepl('[a-z]', a)   
-            ilocs <- which(locs)  
+        ## loop through each vector of characters and replace lower with upper case
+        out <- unlist(lapply(char_vects, function(chars){
+
+            ## detect the lower case locations
+            locs <- grepl('[a-z]', chars)   
+            ilocs <- which(locs) 
+
+            ## sample lower case locations to convert to upper 
             to_upper <- sample(ilocs, ceiling(prop * length(ilocs)))  
-            a[to_upper] <- toupper(a[to_upper])
-            paste(a, collapse = '')
+            chars[to_upper] <- toupper(chars[to_upper])
+
+            ## collapse the vector of characters back to its original string
+            paste(chars, collapse = '')
+
         }))
+
+        ## optional string wrapping
+        if (!is.null(wrap) && !is.na(as.integer(wrap))) {
+            invisible(Map(function(x, wrapchar) {
+                cat(strwrap(x, width = as.integer(wrap)), sep = '\n')
+                if (wrapchar) cat('\n')
+            }, out, c(rep(TRUE, length(out) - 1), FALSE)))
+        } else {
+            out
+        }
+
     }
+
 
     x <- "Many English words are formed by taking basic words and adding combinations of prefixes and suffixes to them."
 
-    random_upper(x, .1)
+    ## 10% random upper
+    random_upper(x, .1, 60)
 
-    ## [1] "Many English words aRe fOrmed by takinG basic words aNd adding combinAtiOns of prEFixes and suffIxes to them."
+    ## Many EnGlish words are foRMed by tAking basic wORdS anD
+    ## aDding combinations of prefixes and suffixes to them.
 
-    random_upper(x, .3)
+    ## 30% random upper
+    random_upper(x, .3, 60)
 
-    ## [1] "Many ENGliSH worDs aRE formed by tAKIng bAsiC worDs anD addIng combinaTions of pREfIxes aNd SUFfIxEs To thEm."
+    ## ManY ENglIsh WordS Are FOrmED bY tAKing basiC woRds and
+    ## adding combInaTions of PRefIxEs and SUffIxeS TO them.
 
-    random_upper(x, .5)
+    ## Worst case (no pun intended)...50% random upper
+    random_upper(x, .5, 60)
 
-    ## [1] "MAnY EngliSH WOrDs ARe FOrmED by TAKING BAsic wOrdS ANd adDiNG cOMBinaTions of PrEfiXes ANd SUFFixeS TO tHem."
+    ## MANY EngLISh wORDS aRe fORMEd bY TAkinG baSiC worDS aNd
+    ## ADding cOmbInATioNs Of PrEfIXeS AND SuFFixEs to theM.
 
 Indeed, I informally recognize that mixing case made decoding harder
 (likely removing automaticity in sight word recognition).
@@ -66,7 +93,7 @@ began as a semi-true Internet meme hoax. The hoax read as follows:
 
 Obviously, there is an element of truth to this but indeed there is a
 cost to scrambling letters. [Rayner, White, Johnson, & Liversedge
-(2006)](articles/Mayall1997.pdf) document this effect.
+(2006)](articles/Rayner2006.pdf) document this effect.
 
 > Rayner, K., White, S. J., Johnson, R. L., & Liversedge, S. P. (2006).
 > Raeding wrods with jubmled lettres: There is a cost. Psychological
@@ -80,53 +107,90 @@ example, let's say I had the sequence `123456`. Sampling grams of length
 3 may produce `231564`. Setting `sample.grams = TRUE` may further
 produce `564231`.
 
-    random_scramble <- function(x, window = 2, sample.grams = TRUE, ...){
+    random_scramble <- function(x, gram.length = 2, sample.grams = TRUE, wrap = NULL, ...){
 
-        if (!is.integer(window)) window <- as.integer(window)
-        stopifnot(all(window > 1))
+        if (!is.integer(gram.length)) gram.length <- as.integer(gram.length)
+        stopifnot(all(gram.length > 1))
 
-        y <- textshape::split_token(x, lower = FALSE)
+        ## splits the strings into a list of tokens (words and punctuation)
+        token_vects <- textshape::split_token(x, lower = FALSE)
 
-        unlist(lapply(y, function(a){
-            out <- unlist(lapply(a, function(b){
+        ## loop through the vectors of tokens
+        out <- unlist(lapply(token_vects, function(tokens){
 
-                ## get a sample from window if not fixed
-                if (length(window) > 1) w <-  sample(window, 1) else w <- window
+            ## loop through the tokens within each vector
+            out <- unlist(lapply(tokens, function(token){
 
-                ## ensure length of word is > 2
-                len <- nchar(b)
-                if (len < 4) return(b)
+                ## get a sample from gram.length if not fixed
+                if (length(gram.length) > 1) win <- sample(gram.length, 1) else win <- gram.length
 
-                z <- strsplit(b, '')[[1]]
+                ## ensure length of word is > 3 because you can't transpose words less than 2 internal characters 
+                len <- nchar(token)
+                if (len < 4) return(token)
+
+                ## split tokens into characters and compute location of internal letters
+                chars <- strsplit(token, '')[[1]]
                 locs <- 2:(len - 1)
 
-                if (length(locs) <= w) {
-                    return(paste(c(z[1], paste(sample(z[locs]), collapse = ''), z[length(z)]), collapse = ''))
+                ## If the length of the internal letters is <= the ngram window randomly 
+                ##   sample internal letters, collapse characters, and return
+                if (length(locs) <= win) {
+                    return(
+                        paste(
+                            c(
+                                chars[1], 
+                                paste(sample(chars[locs]), collapse = ''), 
+                                chars[length(chars)]
+                            ), 
+                            collapse = ''
+                        )
+                    )
                 }
 
-                locs2 <- rep(1:floor(length(locs)/w), each = w)
+                ## Make gram groupings for all grams that match gram.length 
+                ##    (exclude < gram.length char groups)
+                locs2 <- rep(1:floor(length(locs)/win), each = win)
 
-                locs3 <- rle(c(locs2, c(rep(max(locs2) + 1, length(locs)%%w))))
+                ## add in the < gram.length groups and store as list of lengths 
+                ##    and group assignments 
+                locs3 <- rle(c(locs2, c(rep(max(locs2) + 1, length(locs)%%win))))
 
+                ## Resample the lengths to allow the odd group out (if there is one)
+                ##     to be located randomly rather than always at the end
                 locs4 <- rep(locs3$values, sample(locs3$lengths))
 
+                ## split the vector of chars into the groups, loop through, sample 
+                ##     within each group to scramble and collapse the group characters
                 rands <- unlist(lapply(split(locs, locs4), function(grams){
-                    paste(sample(z[grams]), collapse = '')
+                    paste(sample(chars[grams]), collapse = '')
                 }))
 
+                ## optionally scramble the group location as well
                 if (sample.grams) rands <- sample(rands)
 
-                paste(c(z[1], rands, z[length(z)]), collapse = '')  
+                ## collapse the group gram strings together
+                paste(c(chars[1], rands, chars[length(chars)]), collapse = '')  
 
             }))
 
+            ## Paste tokens back together with single space and attmpt to strip out 
+            ##     inappropriate spaces before punctuation.  This does not guarentee
+            ##     original spacing of the strings.
             trimws(gsub("(\\s+)([.!?,;:])", "\\2", paste(out, collapse = ' '), perl = TRUE))
 
         }))
 
+        ## optional string wrapping
+        if (!is.null(wrap) && !is.na(as.integer(wrap))) {
+            invisible(Map(function(x, wrapchar) {
+                cat(strwrap(x, width = as.integer(wrap)), sep = '\n')
+                if (wrapchar) cat('\n')
+            }, out, c(rep(TRUE, length(out) - 1), FALSE)))
+        } else {
+            out
+        }
+
     }
-
-
 
     x <- c(
         "According to a study at an English University, it doesn't matter in what order the letters in a word are, the only important thing is that the first and last letter be at the right place. The rest can be a total mess and you can still read it without problem. This is because the human mind does not read every letter by itself but the word as a whole.",
@@ -135,30 +199,78 @@ produce `564231`.
         "A doctor has admitted the manslaughter of a teenage cancer patient who died after a hospital drug blunder."
     )
 
-    random_scramble(x, 2)
+    ## Bigram & retain gram location
+    random_scramble(x, gram.length = 2, wrap = 70)
 
-    ## [1] "Adinorccg to a study at an Eisnglh Uitrsnievy, it d'nesot mtetar in what oredr the lteetrs in a word are, the olny imanoprtt thnig is taht the frsit and last lteter be at the rghit pcale. The rset can be a tatol mses and you can slitl read it wituhot pleborm. Tihs is baucese the huamn mind deos not read erevy lteter by ilestf but the wrod as a wlohe."
-    ## [2] "A viclhee edepxold at a plocie cheopkcnit naer the UN haeqdrtreaus in Bhgdaad on Mdanoy kniillg the bbemor and an Iraqi picole oifecfr"                                                                                                                                                                                                                          
-    ## [3] "Big ccinuol tax inceerass tihs yaer hvae sezeeuqd the incomes of many psionernes"                                                                                                                                                                                                                                                                                
-    ## [4] "A dtoocr has aettidmd the mghuaetanslr of a teenage cancer patient who died aetfr a htasopil durg bdnuler."
+    ## Accronidg to a sduty at an Elgnsih Uevitinrsy, it dsnoe't metatr in
+    ## waht odrer the lettres in a word are, the only ipmornatt tnihg is
+    ## that the fsrit and last letter be at the rhgit plcae. The rset can be
+    ## a ttaol mses and you can sitll raed it wtihuot poreblm. This is
+    ## busecae the human mind deos not read eevry letter by itself but the
+    ## wrod as a whloe.
+    ## 
+    ## A vilcehe expoledd at a pciole copckehint naer the UN hrtaereqduas in
+    ## Badgahd on Monday kililng the bebmor and an Iqrai plocie oecffir
+    ## 
+    ## Big cicnuol tax ieascnres this yaer have szeeequd the iconmes of many
+    ## ponsiernes
+    ## 
+    ## A dcootr has aitdmted the manslghetuar of a tneeage canecr pateint
+    ## who died after a htapiosl drug bdelunr.
 
-    random_scramble(x, 2, sample.grams = FALSE)
+    ## Bigram and reorder the mixed grams
+    random_scramble(x, gram.length = 2, sample.grams = FALSE, wrap = 70)
 
-    ## [1] "Accroding to a study at an Egnlish Unievsrtiy, it deosn't mtater in waht odrer the letters in a wrod are, the olny imoptrant thing is taht the first and last lteetr be at the right palce. The rset can be a total mess and you can sitll raed it wtihout porlbem. This is bceuase the human mnid does not read every lteetr by itslef but the wrod as a whole."
-    ## [2] "A vehcile epxoledd at a ploice cehkcpoint near the UN haeqduarters in Bagdhad on Mnoady killing the bomber and an Iarqi ploice officer"                                                                                                                                                                                                                          
-    ## [3] "Big cuoncil tax inrcaeses this year have squeezed the incoems of many pnesinoers"                                                                                                                                                                                                                                                                                
-    ## [4] "A doctor has amdtited the mnalsuahgter of a teneage cnacer paitnet who deid after a hosiptal drug blnuedr."
+    ## Accroding to a study at an English Unievsrity, it deosn't mtater in
+    ## what order the ltetres in a wrod are, the only ipmroatnt thnig is
+    ## that the first and last lteter be at the right plcae. The rset can be
+    ## a total mses and you can stlil raed it wtiohut porblem. Tihs is
+    ## becuase the human mind does not raed every letter by istelf but the
+    ## word as a wohle.
+    ## 
+    ## A vehicle exploedd at a police checkopnit naer the UN heaqdautrers in
+    ## Bgahdad on Monday killnig the bomber and an Irqai polcie officer
+    ## 
+    ## Big counicl tax increases this year have squeeezd the incoems of mnay
+    ## pneisonres
+    ## 
+    ## A doctor has amditted the mnalsaughter of a teenage canecr ptaeint
+    ## who deid after a hosipatl drug bulnder.
 
-    random_scramble(x, 2:5)
+    ## Gram length randomly between 2-5 retain gram location
+    random_scramble(x, gram.length = 2:5, wrap = 70)
 
-    ## [1] "Anidrccog to a stduy at an Eglsinh Urneivsity, it desn'ot metatr in what odrer the lettres in a word are, the olny iortmpnat thnig is that the fsrit and last ltteer be at the right pclae. The rest can be a total mses and you can slitl read it wuohtit prolbem. This is beacuse the human mind deos not read eevry ltteer by isletf but the wrod as a wlohe."
-    ## [2] "A velhice epxdloed at a pcoile cinkcopeht naer the UN hertqadearus in Bdahagd on Madony kllniig the bbmeor and an Iraqi picloe offceir"                                                                                                                                                                                                                          
-    ## [3] "Big ciuoncl tax inrcseaes tihs yaer have suqezeed the icmnoes of many pneisnores"                                                                                                                                                                                                                                                                                
-    ## [4] "A doctor has admtteid the mtgheulasanr of a teeange ccenar ptaient who deid aetfr a htiapsol durg bdeulnr."
+    ## Aodrccing to a study at an Esiglnh Univsertiy, it deso'nt metatr in
+    ## what oderr the lteters in a word are, the olny imoprtant tnihg is
+    ## that the frist and last lteter be at the rghit pcale. The rset can be
+    ## a ttaol mess and you can still raed it wtuoiht probelm. Tihs is
+    ## bcusaee the haumn mind does not read erevy ltteer by itself but the
+    ## word as a wohle.
+    ## 
+    ## A vclehie eloxpded at a police cnopikhect near the UN hutarqadeers in
+    ## Bhdagad on Madnoy kilinlg the bmober and an Iaqri ploice ofiecfr
+    ## 
+    ## Big cuoncil tax iacrneess tihs year have sueqzeed the inemcos of many
+    ## psienrones
+    ## 
+    ## A dootcr has attedimd the msaanluehgtr of a tgaeene caencr peiatnt
+    ## who deid atefr a hatipsol drug bldenur.
 
-    random_scramble(x, 5)
+    ## 5-gram retin gram location
+    random_scramble(x, gram.length = 5, wrap = 70)
 
-    ## [1] "Ainrdcocg to a stduy at an Enligsh Uivnesirty, it den'sot metatr in what order the leettrs in a word are, the olny irtompnat tihng is that the fisrt and last lteter be at the rhigt pcale. The rest can be a ttoal mses and you can sitll raed it whtuoit poerlbm. This is basuece the human mnid does not read evrey ltteer by iltesf but the wrod as a whloe."
-    ## [2] "A vliehce edpoelxd at a piloce cnkiopehct naer the UN hterarqdeuas in Badaghd on Maodny knliilg the bebmor and an Iqari piloce ofifecr"                                                                                                                                                                                                                          
-    ## [3] "Big cuncoil tax inceraess this year have sqzeeued the imcnoes of many pensionres"                                                                                                                                                                                                                                                                                
-    ## [4] "A dtoocr has ametitdd the mguehtanslar of a tneaege cnacer pieantt who deid afetr a hitpsoal durg bduenlr."
+    ## Arccoding to a study at an Eslignh Uvniseitry, it dns'oet matetr in
+    ## what oedrr the letters in a wrod are, the olny imparntot tnihg is
+    ## that the frist and lsat ltteer be at the rgiht palce. The rest can be
+    ## a total mses and you can stlil read it wtouiht prlbeom. This is
+    ## bscauee the hmuan mind deos not read evrey leettr by itlesf but the
+    ## wrod as a wohle.
+    ## 
+    ## A vieclhe eolxdped at a police cnoihkecpt naer the UN hartreuqeads in
+    ## Badhagd on Mdoany kniillg the bemobr and an Iaqri plioce offiecr
+    ## 
+    ## Big cinocul tax icnrseaes this year have seeezuqd the icnemos of many
+    ## psoienners
+    ## 
+    ## A dtcoor has adtmeitd the mnslaahgeutr of a teneage cancer paeintt
+    ## who deid atefr a hoipsatl durg bdenulr.
