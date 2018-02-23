@@ -78,20 +78,20 @@ to randomly alter case:
     ## 10% random upper
     random_upper(x, .1, 60)
 
-    ## ManY EnglisH words are Formed by taking basic words and
-    ## addIng coMbinations oF Prefixes and sUfFixes to them.
+    ## ManY English wOrds are forMed by taking basic Words anD
+    ## adding comBinatIOns of prefIxes and suffixes to them.
 
     ## 30% random upper
     random_upper(x, .3, 60)
 
-    ## Many EnglisH Words Are FoRMeD by tAKiNg bAsic WOrDS aND
-    ## addiNg CombinaTioNs of prefiXes and SufFiXes to TheM.
+    ## MANy EnglisH WORdS ArE Formed by tAking BAsic wOrds And
+    ## addiNg combiNaTions oF preFixes aNd suFFixES tO Them.
 
     ## Worst case (no pun intended)...50% random upper
     random_upper(x, .5, 60)
 
-    ## MaNy ENGLIsH woRDS ARe foRmED bY TaKIng baSiC WORdS aNd
-    ## adDiNg CoMbInatiOnS of pReFiXeS ANd SuFFixeS TO theM.
+    ## Many ENGlISh wOrDS are fORMed By tAKIng BaSIC WoRdS aND
+    ## ADdInG combinATioNs OF PREFIxES and SufFixEs TO Them.
 
 Indeed, I informally recognize that mixing case made decoding harder
 (likely removing automaticity in sight word recognition).
@@ -148,6 +148,10 @@ may further produce `564231`.
     #' \code{sample.grams = TRUE} may further produce \code{564231}.
     #' @param wrap An integer value of how wide to wrap the strings.  Using the default 
     #' \code{NULL} disables this feature.
+    #' @param remix.first logical.  If \code{TRUE} the first letter is allowed to be 
+    #' remixed as well.
+    #' @param remix.last logical.  If \code{TRUE} the last letter is allowed to be 
+    #' remixed as well.
     #' @param \ldots ignored.
     #' @return Prints wrapped lines with internal graphemes scrambled.
     #' @references 
@@ -155,7 +159,8 @@ may further produce `564231`.
     #' wrods with jubmled lettres: There is a cost. Psychological Science, 17(3), 
     #' 192-193. 10.1111/j.1467-9280.2006.01684.x
     #' @export
-    random_scramble <- function(x, gram.length = 2, sample.grams = TRUE, wrap = NULL, ...){
+    random_scramble <- function(x, gram.length = 2, sample.grams = TRUE, wrap = NULL, 
+        remix.first = FALSE, remix.last = FALSE, ...){
 
         if (!is.integer(gram.length)) gram.length <- as.integer(gram.length)
         stopifnot(all(gram.length > 1))
@@ -173,12 +178,13 @@ may further produce `564231`.
                 if (length(gram.length) > 1) win <- sample(gram.length, 1) else win <- gram.length
 
                 ## ensure length of word is > 3 because you can't transpose words less than 2 internal characters 
+                ##   Note: the value of 3 depends if the first and last letters are allowed to vary
                 len <- nchar(token)
-                if (len < 4) return(token)
+                if (len < 4 - (remix.first + remix.last)) return(token)
 
                 ## split tokens into characters and compute location of internal letters
                 chars <- strsplit(token, '')[[1]]
-                locs <- 2:(len - 1)
+                locs <- (2 - remix.first):(len - (!remix.last))
 
                 ## If the length of the internal letters is <= the ngram window randomly 
                 ##   sample internal letters, collapse characters, and return
@@ -186,9 +192,9 @@ may further produce `564231`.
                     return(
                         paste(
                             c(
-                                chars[1], 
+                                if (remix.first) '' else chars[1], 
                                 paste(sample(chars[locs]), collapse = ''), 
-                                chars[length(chars)]
+                                if (remix.last) '' else chars[length(chars)]
                             ), 
                             collapse = ''
                         )
@@ -217,7 +223,14 @@ may further produce `564231`.
                 if (sample.grams) rands <- sample(rands)
 
                 ## collapse the group gram strings together
-                paste(c(chars[1], rands, chars[length(chars)]), collapse = '')  
+                paste(
+                    c(
+                        if (remix.first) '' else chars[1], 
+                        rands, 
+                        if (remix.last) '' else chars[length(chars)]
+                    ), 
+                    collapse = ''
+                )  
 
             }))
 
@@ -250,75 +263,75 @@ may further produce `564231`.
     ## Bigram & retain gram location
     random_scramble(x, gram.length = 2, wrap = 70)
 
-    ## Acinrdcog to a sudty at an Eglsinh Uinevrstiy, it doen'st mtaetr in
-    ## waht oredr the lretets in a word are, the olny irotpmant thing is
-    ## taht the fisrt and lsat lteter be at the rihgt pcale. The rest can be
-    ## a tatol mess and you can slitl raed it withuot porlbem. Tihs is
-    ## becasue the hamun mind deos not read erevy letter by istelf but the
+    ## Adroinccg to a sudty at an Ensilgh Utinivesry, it dseon't mtater in
+    ## waht order the lrettes in a word are, the olny iornatmpt thing is
+    ## that the fisrt and lsat letter be at the rhigt pcale. The rset can be
+    ## a toatl mses and you can sltil raed it wituoht pborelm. Tihs is
+    ## bacsuee the human mnid deos not raed every lteter by itself but the
     ## wrod as a wlohe.
     ## 
-    ## A vehlcie eoldepxd at a picole cnikcpoeht near the UN hqdauaertres in
-    ## Bhgadad on Mdanoy klnilig the bbemor and an Irqai plocie offecir
+    ## A vlceihe epxedold at a pciole cniopkceht near the UN hqdrteaeruas in
+    ## Bhagadd on Monady kliinlg the bebmor and an Iaqri ploice offiecr
     ## 
-    ## Big ccniuol tax irsenceas this year have suqezeed the incomes of many
-    ## poniseners
+    ## Big couicnl tax incaerses this yaer hvae seeezqud the imocnes of mnay
+    ## preisnenos
     ## 
-    ## A dotcor has admtited the mghanausletr of a tneeage cecnar pientat
-    ## who deid atefr a hsotapil drug bedulnr.
+    ## A dtoocr has aetdmitd the mnaghtesluar of a teegnae cecnar pnatiet
+    ## who deid atefr a hsoiptal drug blunedr.
 
     ## Bigram and reorder the mixed grams
     random_scramble(x, gram.length = 2, sample.grams = FALSE, wrap = 70)
 
-    ## Accroidng to a study at an English University, it dose'nt mtater in
-    ## waht order the lettres in a word are, the olny ipmortnat thing is
-    ## that the fisrt and lsat letetr be at the rgiht plcae. The rest can be
-    ## a total mses and you can still read it wtihout porbelm. Tihs is
-    ## becasue the human mind does not read every lteter by itslef but the
-    ## wrod as a whole.
+    ## Accodrnig to a study at an Egnlsih Unievrsity, it dose'nt matter in
+    ## what oredr the lettres in a wrod are, the olny impotrant tihng is
+    ## that the first and last letter be at the rihgt place. The rest can be
+    ## a total mses and you can still raed it without porblem. This is
+    ## because the human mind does not raed every letetr by istelf but the
+    ## word as a whole.
     ## 
-    ## A vheicle exploded at a police chekcponit near the UN haeqdaurters in
-    ## Baghdad on Mnoday kililng the bmoebr and an Iraqi ploice officer
+    ## A vheilce expoledd at a polcie chekcopint naer the UN heaqdautrers in
+    ## Bgadhad on Monady kililng the bomebr and an Irqai police ofifecr
     ## 
-    ## Big cuonicl tax icnreaess this yaer hvae squeezed the icnomes of mnay
-    ## penisoners
+    ## Big conuicl tax incresaes tihs year have squeezed the icnmoes of many
+    ## penisnores
     ## 
-    ## A dcotor has admitetd the manlsauhgter of a tenegae canecr ptaeint
-    ## who died afetr a hospiatl drug blunder.
+    ## A dcootr has amditetd the manlsaughter of a teenage canecr patient
+    ## who deid after a hosipatl drug blunedr.
 
     ## Gram length randomly between 2-5 retain gram location
     random_scramble(x, gram.length = 2:5, wrap = 70)
 
-    ## Acocrindg to a sdtuy at an Engislh Uitsveirny, it d'onest meattr in
-    ## what oderr the lreetts in a word are, the only iportmnat tnhig is
-    ## that the fisrt and last ltteer be at the right place. The rest can be
-    ## a total mess and you can sitll read it wituoht prolbem. Tihs is
-    ## baecsue the human mind deos not raed evrey ltteer by itlsef but the
-    ## wrod as a wolhe.
+    ## Accoridng to a study at an Eislgnh Uivnsretiy, it d'nsoet mtater in
+    ## what oerdr the lretets in a word are, the only inartpmot tnhig is
+    ## taht the fisrt and lsat lteter be at the rihgt place. The rset can be
+    ## a ttoal mses and you can sitll raed it wiuhtot peblorm. Tihs is
+    ## bueasce the hmuan mind deos not raed ervey letter by ilstef but the
+    ## word as a wohle.
     ## 
-    ## A vehicle eoxldped at a pciole chkceonipt naer the UN htreauredqas in
-    ## Bdaaghd on Mnoady kililng the bmboer and an Iarqi picole ofeficr
+    ## A vehicle eoledpxd at a picole cehckionpt near the UN hruadeaetrqs in
+    ## Bahadgd on Mnoday kililng the bobmer and an Iqari pciloe ociffer
     ## 
-    ## Big ccinuol tax isaencers this yaer have sequezed the ieomcns of mnay
-    ## poinesnres
+    ## Big cuocnil tax irseaecns tihs yaer hvae suqzeeed the iocnems of mnay
+    ## psneinroes
     ## 
-    ## A dootcr has aidmtted the mlsanautgher of a tenaege cacner peintat
-    ## who deid after a htpaisol durg blnuder.
+    ## A dcotor has aeittmdd the metanuahgslr of a teenage cnacer petiant
+    ## who deid aeftr a hatispol durg bdlneur.
 
     ## 5-gram retin gram location
     random_scramble(x, gram.length = 5, wrap = 70)
 
-    ## Ardcocnig to a sduty at an Egilnsh Urseitivny, it d'ensot mettar in
-    ## waht order the ltteers in a wrod are, the olny itraonmpt tihng is
-    ## taht the fsrit and last letter be at the rghit pacle. The rest can be
-    ## a tatol mess and you can sltil read it wiotuht perlbom. Tihs is
-    ## bcaeuse the haumn mind does not read eervy letter by ilestf but the
-    ## wrod as a wolhe.
+    ## Adinroccg to a sutdy at an Egslinh Urisetnviy, it d'seont mtaetr in
+    ## waht oedrr the ltetres in a wrod are, the only ipmtonart thnig is
+    ## that the fsirt and last ltteer be at the rihgt palce. The rset can be
+    ## a tatol mess and you can stlil read it whutoit pebrolm. This is
+    ## bsuecae the hmaun mnid does not raed erevy letetr by iltsef but the
+    ## word as a wolhe.
     ## 
-    ## A vhilece exdoelpd at a pciole cehcipnkot near the UN htarerudaeqs in
-    ## Bdagahd on Madnoy killnig the bbeomr and an Iaqri picole ofiecfr
+    ## A vlihcee eepoldxd at a piolce cnipkochet naer the UN hertraeqauds in
+    ## Bgdhaad on Modnay kliling the boembr and an Iraqi pciole oiceffr
     ## 
-    ## Big cuconil tax incseears this yaer have szeueeqd the imcneos of many
-    ## penreoisns
+    ## Big ccnouil tax iraencses this year have seezueqd the icnmeos of many
+    ## prenisenos
     ## 
-    ## A dotcor has aetmitdd the mnslaahteugr of a tenagee canecr pteinat
-    ## who died after a hpstiaol drug bueldnr.
+    ## A dotocr has adttiemd the manlashugter of a tneagee canecr pntiaet
+    ## who died aetfr a hastpiol drug beulndr.

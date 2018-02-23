@@ -130,6 +130,10 @@ The code below produces random resamples of internal letters.  The `gram.length`
 #' \code{sample.grams = TRUE} may further produce \code{564231}.
 #' @param wrap An integer value of how wide to wrap the strings.  Using the default 
 #' \code{NULL} disables this feature.
+#' @param remix.first logical.  If \code{TRUE} the first letter is allowed to be 
+#' remixed as well.
+#' @param remix.last logical.  If \code{TRUE} the last letter is allowed to be 
+#' remixed as well.
 #' @param \ldots ignored.
 #' @return Prints wrapped lines with internal graphemes scrambled.
 #' @references 
@@ -137,7 +141,8 @@ The code below produces random resamples of internal letters.  The `gram.length`
 #' wrods with jubmled lettres: There is a cost. Psychological Science, 17(3), 
 #' 192-193. 10.1111/j.1467-9280.2006.01684.x
 #' @export
-random_scramble <- function(x, gram.length = 2, sample.grams = TRUE, wrap = NULL, ...){
+random_scramble <- function(x, gram.length = 2, sample.grams = TRUE, wrap = NULL, 
+    remix.first = FALSE, remix.last = FALSE, ...){
 
     if (!is.integer(gram.length)) gram.length <- as.integer(gram.length)
     stopifnot(all(gram.length > 1))
@@ -155,12 +160,13 @@ random_scramble <- function(x, gram.length = 2, sample.grams = TRUE, wrap = NULL
             if (length(gram.length) > 1) win <- sample(gram.length, 1) else win <- gram.length
 
             ## ensure length of word is > 3 because you can't transpose words less than 2 internal characters 
+            ##   Note: the value of 3 depends if the first and last letters are allowed to vary
             len <- nchar(token)
-            if (len < 4) return(token)
+            if (len < 4 - (remix.first + remix.last)) return(token)
 
             ## split tokens into characters and compute location of internal letters
             chars <- strsplit(token, '')[[1]]
-            locs <- 2:(len - 1)
+            locs <- (2 - remix.first):(len - (!remix.last))
 
             ## If the length of the internal letters is <= the ngram window randomly 
             ##   sample internal letters, collapse characters, and return
@@ -168,9 +174,9 @@ random_scramble <- function(x, gram.length = 2, sample.grams = TRUE, wrap = NULL
                 return(
                     paste(
                         c(
-                            chars[1], 
+                            if (remix.first) '' else chars[1], 
                             paste(sample(chars[locs]), collapse = ''), 
-                            chars[length(chars)]
+                            if (remix.last) '' else chars[length(chars)]
                         ), 
                         collapse = ''
                     )
@@ -199,7 +205,14 @@ random_scramble <- function(x, gram.length = 2, sample.grams = TRUE, wrap = NULL
             if (sample.grams) rands <- sample(rands)
 
             ## collapse the group gram strings together
-            paste(c(chars[1], rands, chars[length(chars)]), collapse = '')  
+            paste(
+                c(
+                    if (remix.first) '' else chars[1], 
+                    rands, 
+                    if (remix.last) '' else chars[length(chars)]
+                ), 
+                collapse = ''
+            )  
 
         }))
 
